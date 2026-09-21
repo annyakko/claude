@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ann Works Lab</title>
+<meta name="description" content="Ann Works Lab — AIビジネスサポート。困りごとを整理し、AIと実務で形にします。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink-navy: #1C2436;
+    --ink-navy-soft: #262F45;
+    --paper: #F7F2E7;
+    --paper-line: #E1D8C3;
+    --ink: #2B2620;
+    --ink-soft: #625A4C;
+    --seal: #A5321F;
+    --seal-deep: #7C2517;
+    --shadow: rgba(10, 12, 20, 0.45);
+  }
+
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ink-navy: #0C1019;
+      --ink-navy-soft: #161C2C;
+      --paper: #ECE4D2;
+      --paper-line: #D2C7AD;
+      --ink: #211C15;
+      --ink-soft: #5A5344;
+      --seal: #C24632;
+      --seal-deep: #96311F;
+      --shadow: rgba(0, 0, 0, 0.6);
+    }
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{ margin: 0; padding: 0; min-height: 100%; }
+
+  body{
+    background: radial-gradient(circle at 50% 15%, var(--ink-navy-soft), var(--ink-navy) 70%);
+    color: var(--ink);
+    font-family: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 64px 20px;
+  }
+
+  .card{
+    position: relative;
+    width: 100%;
+    max-width: 720px;
+    background: var(--paper);
+    padding: 56px 56px 48px;
+    box-shadow: 0 32px 70px -24px var(--shadow);
+    clip-path: polygon(0 0, calc(100% - 32px) 0, 100% 32px, 100% 100%, 0 100%);
+  }
+
+  .grain{
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      repeating-linear-gradient(to right, var(--paper-line) 0, var(--paper-line) 1px, transparent 1px, transparent 34px),
+      repeating-linear-gradient(to bottom, var(--paper-line) 0, var(--paper-line) 1px, transparent 1px, transparent 34px);
+    opacity: 0.35;
+  }
+
+  .layout{
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    gap: 48px;
+    flex-wrap: wrap;
+  }
+
+  .tagline-col{
+    flex: 0 0 auto;
+    border-left: 1px solid var(--paper-line);
+    padding-left: 22px;
+  }
+
+  .tagline{
+    margin: 0;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-family: "Shippori Mincho", serif;
+    font-weight: 600;
+    font-size: clamp(1.1rem, 2.4vw, 1.4rem);
+    line-height: 2;
+    letter-spacing: 0.14em;
+    color: var(--ink);
+  }
+
+  .tagline .tcy{
+    text-combine-upright: all;
+  }
+
+  .identity-col{
+    flex: 1 1 260px;
+    min-width: 220px;
+  }
+
+  .stamp{
+    width: 54px;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 35% 30%, var(--seal) 0%, var(--seal-deep) 100%);
+    color: #F7F2E7;
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    border-radius: 8px;
+    box-shadow: 0 8px 16px -6px rgba(124, 37, 23, 0.55);
+    transform: rotate(-6deg);
+    margin: 0 0 24px;
+    animation: stampPress 0.7s cubic-bezier(0.22, 1.6, 0.4, 1) 0.2s both;
+  }
+
+  @keyframes stampPress{
+    from{ opacity: 0; transform: scale(1.8) rotate(-20deg); }
+    to{ opacity: 1; transform: scale(1) rotate(-6deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .stamp{ animation: none; }
+  }
+
+  .name{
+    font-family: "Shippori Mincho", serif;
+    font-weight: 800;
+    font-size: clamp(1.5rem, 4vw, 1.85rem);
+    margin: 0 0 6px;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+  }
+
+  .role{
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  .rule{
+    border: none;
+    border-top: 1px solid var(--paper-line);
+    margin: 26px 0;
+  }
+
+  .likes-label{
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-weight: 500;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    margin: 0 0 12px;
+  }
+
+  .likes{
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .likes li{
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-weight: 500;
+    font-size: 0.98rem;
+    color: var(--ink);
+    position: relative;
+    padding-left: 18px;
+  }
+
+  .likes li::before{
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.5em;
+    width: 6px;
+    height: 6px;
+    background: var(--seal);
+    transform: rotate(45deg);
+  }
+
+  .sns{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    text-decoration: none;
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: var(--ink);
+    position: relative;
+    padding-bottom: 3px;
+  }
+
+  .sns svg{ width: 15px; height: 15px; fill: currentColor; }
+
+  .sns::after{
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background: var(--ink);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.25s ease, background 0.25s ease;
+  }
+
+  .sns:hover{ color: var(--seal); }
+  .sns:hover::after{ transform: scaleX(1); background: var(--seal); }
+
+  .sns:focus-visible{
+    outline: 2px solid var(--seal);
+    outline-offset: 4px;
+  }
+
+  @media (max-width: 560px){
+    .card{ padding: 44px 30px 38px; }
+    .layout{ flex-direction: column; gap: 34px; }
+    .tagline-col{
+      border-left: none;
+      border-top: 1px solid var(--paper-line);
+      padding-left: 0;
+      padding-top: 22px;
+    }
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="grain" aria-hidden="true"></div>
+    <div class="layout">
+      <section class="tagline-col" aria-label="メッセージ">
+        <p class="tagline">困りごとを整理し<span class="tcy">AI</span>と実務で形に。</p>
+      </section>
+      <section class="identity-col">
+        <div class="stamp" aria-hidden="true">AWL</div>
+        <h1 class="name">Ann Works Lab</h1>
+        <p class="role">AI ビジネスサポート</p>
+
+        <hr class="rule">
+
+        <p class="likes-label">好きなこと</p>
+        <ul class="likes">
+          <li>AIの学習</li>
+          <li>ものづくり</li>
+          <li>デザイン</li>
+        </ul>
+
+        <hr class="rule">
+
+        <a class="sns" href="https://x.com/your_account" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 2H22l-7.6 8.7L23.3 22h-6.9l-5.4-7-6.2 7H1.7l8.1-9.3L1 2h7l4.9 6.4L18.9 2Zm-1.2 18h1.9L7.4 4H5.3l12.4 16Z"/></svg>
+          <span>@your_account</span>
+        </a>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
