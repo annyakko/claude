@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ポモドーロタイマー</title>
+<meta name="description" content="25分集中＋5分休憩を繰り返すポモドーロタイマー。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #F3EFE4;
+    --ink: #2B2620;
+    --ink-soft: #8A8070;
+    --tomato: #E5402A;
+    --tomato-deep: #BC3220;
+    --leaf: #4C9A55;
+    --leaf-deep: #3B7A42;
+    --display: #FBF8F1;
+    --shadow: rgba(43, 38, 32, 0.18);
+  }
+
+  body.mode-break{ --accent: var(--leaf); --accent-deep: var(--leaf-deep); }
+  body.mode-focus{ --accent: var(--tomato); --accent-deep: var(--tomato-deep); }
+
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper: #1B1815;
+      --ink: #F3EEE3;
+      --ink-soft: #8F8471;
+      --tomato: #FF5A3C;
+      --tomato-deep: #E14428;
+      --leaf: #67B96E;
+      --leaf-deep: #4F9C56;
+      --display: #262019;
+      --shadow: rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  *{ box-sizing: border-box; }
+  html, body{ margin: 0; padding: 0; min-height: 100%; }
+
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+  }
+
+  .app{
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+  }
+
+  .mode-label{
+    margin: 0 0 18px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    transition: color 0.5s ease;
+  }
+
+  .dial-wrap{
+    position: relative;
+    width: min(300px, 78vw);
+    height: min(300px, 78vw);
+    margin: 0 auto 30px;
+  }
+
+  .dial{ width: 100%; height: 100%; overflow: visible; }
+
+  .stem{ transition: transform 0.25s linear; transform-origin: 150px 28px; }
+  @media (prefers-reduced-motion: reduce){ .stem{ transition: none; } }
+  .stem-rect{ fill: var(--leaf); }
+
+  .tick-line{ stroke: var(--ink-soft); stroke-width: 1.5; opacity: 0.5; }
+  .tick-text{
+    fill: var(--ink-soft);
+    font-family: "Noto Sans JP", sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    text-anchor: middle;
+    dominant-baseline: middle;
+  }
+
+  .wedge{ fill: var(--accent); transition: fill 0.5s ease; }
+
+  .display-disc{ fill: var(--display); }
+
+  .readout{
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .time{
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(2.2rem, 10vw, 2.9rem);
+    color: var(--ink);
+    letter-spacing: 0.01em;
+  }
+
+  body.is-running .display-disc{
+    animation: breathe 4s ease-in-out infinite;
+    transform-origin: 150px 150px;
+  }
+  @keyframes breathe{
+    0%, 100%{ transform: scale(1); }
+    50%{ transform: scale(1.015); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    body.is-running .display-disc{ animation: none; }
+  }
+
+  .controls{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .btn{
+    font-family: "Noto Sans JP", sans-serif;
+    font-size: 0.92rem;
+    font-weight: 500;
+    padding: 13px 24px;
+    border-radius: 999px;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    background: transparent;
+    color: var(--ink-soft);
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease, transform 0.15s ease;
+  }
+
+  .btn:active{ transform: scale(0.96); }
+
+  .btn:disabled{ opacity: 0.35; cursor: not-allowed; transform: none; }
+
+  .btn-primary{
+    background: var(--accent);
+    color: #FFFFFF;
+    border-color: var(--accent);
+  }
+  .btn-primary:hover:not(:disabled){ background: var(--accent-deep); border-color: var(--accent-deep); }
+
+  .btn-outline{
+    border-color: var(--ink-soft);
+  }
+  .btn-outline:not(:disabled):hover{ border-color: var(--accent); color: var(--accent); }
+
+  .btn-ghost:not(:disabled):hover{ color: var(--ink); }
+
+  .btn:focus-visible{
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .btn{ transition: opacity 0.2s ease; }
+    .btn:active{ transform: none; }
+  }
+</style>
+</head>
+<body class="mode-focus">
+  <main class="app">
+    <p class="mode-label" id="modeLabel">集中</p>
+
+    <div class="dial-wrap">
+      <svg class="dial" viewBox="0 0 300 300">
+        <g class="stem" id="stem">
+          <rect class="stem-rect" x="143" y="4" width="14" height="26" rx="7"></rect>
+        </g>
+        <circle cx="150" cy="150" r="128" fill="none" stroke="var(--ink-soft)" stroke-width="1" opacity="0.25"></circle>
+        <path class="wedge" id="wedge" d=""></path>
+        <circle class="display-disc" cx="150" cy="150" r="88"></circle>
+        <g id="ticks"></g>
+      </svg>
+      <div class="readout">
+        <div class="time" id="timeDisplay">25:00</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="btnStart" class="btn btn-primary">開始</button>
+      <button id="btnStop" class="btn btn-outline" disabled>停止</button>
+      <button id="btnReset" class="btn btn-ghost">リセット</button>
+    </div>
+  </main>
+
+<script>
+  const FOCUS_SECONDS = 25 * 60;
+  const BREAK_SECONDS = 5 * 60;
+  const CX = 150, CY = 150, R_OUTER = 128, R_INNER = 92, R_TICK = 150;
+
+  const CONFIGS = {
+    focus: { total: FOCUS_SECONDS, ticks: [0, 5, 10, 15, 20], ticksTotal: 25 },
+    break: { total: BREAK_SECONDS, ticks: [0, 1, 2, 3, 4], ticksTotal: 5 },
+  };
+
+  const modeLabel = document.getElementById('modeLabel');
+  const timeDisplay = document.getElementById('timeDisplay');
+  const wedge = document.getElementById('wedge');
+  const ticksGroup = document.getElementById('ticks');
+  const stem = document.getElementById('stem');
+  const btnStart = document.getElementById('btnStart');
+  const btnStop = document.getElementById('btnStop');
+  const btnReset = document.getElementById('btnReset');
+
+  let mode = 'focus';
+  let remaining = FOCUS_SECONDS;
+  let endTime = null;
+  let timerId = null;
+  let running = false;
+  let audioCtx = null;
+
+  function totalFor(m){ return CONFIGS[m].total; }
+
+  function polarToCartesian(cx, cy, r, angleDeg){
+    const a = angleDeg * Math.PI / 180;
+    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+  }
+
+  function describeAnnularSector(cx, cy, rOuter, rInner, startAngle, endAngle){
+    const large = (endAngle - startAngle) > 180 ? 1 : 0;
+    const p1 = polarToCartesian(cx, cy, rOuter, startAngle);
+    const p2 = polarToCartesian(cx, cy, rOuter, endAngle);
+    const p3 = polarToCartesian(cx, cy, rInner, endAngle);
+    const p4 = polarToCartesian(cx, cy, rInner, startAngle);
+    return `M ${p1.x} ${p1.y} A ${rOuter} ${rOuter} 0 ${large} 1 ${p2.x} ${p2.y} L ${p3.x} ${p3.y} A ${rInner} ${rInner} 0 ${large} 0 ${p4.x} ${p4.y} Z`;
+  }
+
+  function renderTicks(){
+    const cfg = CONFIGS[mode];
+    ticksGroup.innerHTML = '';
+    cfg.ticks.forEach(value => {
+      const angle = -90 + 360 * (value / cfg.ticksTotal);
+      const inner = polarToCartesian(CX, CY, R_OUTER + 6, angle);
+      const outer = polarToCartesian(CX, CY, R_OUTER + 14, angle);
+      const label = polarToCartesian(CX, CY, R_TICK, angle);
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('class', 'tick-line');
+      line.setAttribute('x1', inner.x); line.setAttribute('y1', inner.y);
+      line.setAttribute('x2', outer.x); line.setAttribute('y2', outer.y);
+      ticksGroup.appendChild(line);
+
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('class', 'tick-text');
+      text.setAttribute('x', label.x); text.setAttribute('y', label.y);
+      text.textContent = value;
+      ticksGroup.appendChild(text);
+    });
+  }
+
+  function updateWedge(fraction){
+    const sweep = Math.min(359.98, Math.max(0, 360 * fraction));
+    if (sweep < 0.5){ wedge.setAttribute('d', ''); return; }
+    wedge.setAttribute('d', describeAnnularSector(CX, CY, R_OUTER, R_INNER, -90, -90 + sweep));
+  }
+
+  function updateStem(fraction){
+    const angle = (1 - fraction) * -42;
+    stem.setAttribute('transform', `rotate(${angle} 150 28)`);
+  }
+
+  function updateDisplay(){
+    const clamped = Math.max(0, remaining);
+    const m = Math.floor(clamped / 60).toString().padStart(2, '0');
+    const s = Math.floor(clamped % 60).toString().padStart(2, '0');
+    timeDisplay.textContent = `${m}:${s}`;
+
+    const fraction = Math.max(0, Math.min(1, clamped / totalFor(mode)));
+    updateWedge(fraction);
+    updateStem(fraction);
+
+    modeLabel.textContent = mode === 'focus' ? '集中' : '休憩';
+    document.body.classList.toggle('mode-break', mode === 'break');
+    document.body.classList.toggle('mode-focus', mode === 'focus');
+    document.body.classList.toggle('is-running', running);
+  }
+
+  function updateButtons(){
+    btnStart.disabled = running;
+    btnStop.disabled = !running;
+  }
+
+  function ensureAudio(){
+    if (!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended'){
+      audioCtx.resume();
+    }
+  }
+
+  function playChime(){
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    [880, 660].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const t0 = now + i * 0.28;
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.35, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.5);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t0);
+      osc.stop(t0 + 0.55);
+    });
+  }
+
+  function handlePhaseEnd(){
+    if (mode === 'focus'){
+      playChime();
+      mode = 'break';
+    } else {
+      mode = 'focus';
+    }
+    remaining = totalFor(mode);
+    endTime = Date.now() + remaining * 1000;
+    renderTicks();
+    updateDisplay();
+  }
+
+  function tick(){
+    remaining = Math.round((endTime - Date.now()) / 1000);
+    if (remaining <= 0){
+      handlePhaseEnd();
+      return;
+    }
+    updateDisplay();
+  }
+
+  function start(){
+    if (running) return;
+    ensureAudio();
+    running = true;
+    endTime = Date.now() + remaining * 1000;
+    timerId = setInterval(tick, 250);
+    updateButtons();
+    updateDisplay();
+  }
+
+  function stop(){
+    if (!running) return;
+    running = false;
+    clearInterval(timerId);
+    remaining = Math.max(0, Math.round((endTime - Date.now()) / 1000));
+    updateButtons();
+    updateDisplay();
+  }
+
+  function reset(){
+    running = false;
+    clearInterval(timerId);
+    mode = 'focus';
+    remaining = FOCUS_SECONDS;
+    renderTicks();
+    updateButtons();
+    updateDisplay();
+  }
+
+  btnStart.addEventListener('click', start);
+  btnStop.addEventListener('click', stop);
+  btnReset.addEventListener('click', reset);
+
+  renderTicks();
+  updateButtons();
+  updateDisplay();
+</script>
+</body>
+</html>
