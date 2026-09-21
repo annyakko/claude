@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>単位コンバーター</title>
+<meta name="description" content="kg⇔lb・cm⇔inch・℃⇔°F をその場で変換する単位コンバーター。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@500;600&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #FFFFFF;
+    --surface: #F4F8FC;
+    --surface-strong: #EAF3FB;
+    --surface-line: #E1EAF4;
+    --ink: #1F2A3D;
+    --ink-soft: #5B7186;
+    --accent: #2F5D8A;
+    --accent-deep: #234868;
+    --accent-soft: #DCEAF7;
+    --warm: #E0876F;
+    --cold: #6FA3C9;
+    --shadow: rgba(47, 93, 138, 0.16);
+  }
+
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg: #0E1520;
+      --surface: #162131;
+      --surface-strong: #1C293C;
+      --surface-line: #263C55;
+      --ink: #E7EEF6;
+      --ink-soft: #93A6BC;
+      --accent: #6FA8DA;
+      --accent-deep: #8FC0E8;
+      --accent-soft: #1D3348;
+      --warm: #E79683;
+      --cold: #6FA3C9;
+      --shadow: rgba(0, 0, 0, 0.45);
+    }
+  }
+
+  *{ box-sizing: border-box; }
+  html, body{ margin: 0; padding: 0; min-height: 100%; }
+
+  body{
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 64px 20px;
+  }
+
+  .panel{
+    width: 100%;
+    max-width: 460px;
+    background: var(--surface);
+    border-radius: 28px;
+    padding: 52px 44px 44px;
+    box-shadow: 0 30px 60px -30px var(--shadow);
+  }
+
+  .heading{ margin: 0 0 36px; }
+
+  h1{
+    font-family: "Zen Old Mincho", serif;
+    font-weight: 600;
+    font-size: 1.5rem;
+    margin: 0;
+    letter-spacing: 0.03em;
+    color: var(--ink);
+  }
+
+  .heading::after{
+    content: "";
+    display: block;
+    width: 34px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--accent);
+    margin-top: 14px;
+  }
+
+  .field-select{ position: relative; margin-bottom: 30px; }
+
+  select{
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--bg);
+    border: 1.5px solid var(--surface-line);
+    border-radius: 999px;
+    padding: 15px 44px 15px 22px;
+    font-family: inherit;
+    font-size: 0.98rem;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  select:hover{ border-color: var(--accent); }
+
+  select:focus-visible{
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft);
+  }
+
+  .field-select::after{
+    content: "";
+    position: absolute;
+    right: 22px;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--accent);
+    border-bottom: 2px solid var(--accent);
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+  }
+
+  .gauge-frame{
+    background: var(--surface-strong);
+    border-radius: 20px;
+    padding: 22px 18px 14px;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 150px;
+  }
+
+  .gauge{ display: none; width: 100%; height: auto; max-height: 130px; }
+  .gauge.active{ display: block; }
+  #gauge-temp.active{ width: auto; height: 130px; }
+
+  .gauge .track{ fill: none; stroke: var(--surface-line); stroke-width: 10; stroke-linecap: round; }
+  .gauge .tick{ stroke: var(--accent); stroke-width: 1.6; opacity: 0.55; }
+  .gauge .tick-label{ fill: var(--ink-soft); font-family: "Noto Sans JP", sans-serif; font-size: 9px; text-anchor: middle; }
+  .gauge .needle{ stroke: var(--accent); stroke-width: 3; stroke-linecap: round; transition: x2 0.3s ease, y2 0.3s ease; }
+  .gauge .pivot{ fill: var(--accent); }
+  .gauge .baseline{ stroke: var(--surface-line); stroke-width: 3; }
+  .gauge .marker{ fill: var(--accent); transition: transform 0.3s ease; }
+  .gauge .thermo-body{ fill: none; stroke: var(--surface-line); stroke-width: 3; }
+  .gauge .thermo-fill{ transition: y 0.3s ease, height 0.3s ease, fill 0.3s ease; }
+
+  @media (prefers-reduced-motion: reduce){
+    .gauge .needle, .gauge .marker, .gauge .thermo-fill{ transition: none; }
+  }
+
+  .converter{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .amount{ flex: 1 1 0; min-width: 0; }
+
+  .amount label{
+    display: block;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    margin: 0 0 8px;
+    font-weight: 500;
+  }
+
+  .amount-input{
+    display: flex;
+    align-items: baseline;
+    background: var(--bg);
+    border: 1.5px solid var(--surface-line);
+    border-radius: 16px;
+    padding: 14px 16px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .amount-input:focus-within{
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft);
+  }
+
+  .amount-input input{
+    width: 100%;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    font-family: "Noto Sans JP", sans-serif;
+    font-variant-numeric: tabular-nums;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--ink);
+    padding: 0;
+  }
+
+  .amount-input input:focus{ outline: none; }
+
+  .amount-input input::-webkit-outer-spin-button,
+  .amount-input input::-webkit-inner-spin-button{
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .amount-input input[type="number"]{ -moz-appearance: textfield; }
+
+  .unit{
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    margin-left: 8px;
+    white-space: nowrap;
+  }
+
+  .swap{
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    margin-top: 22px;
+  }
+
+  .swap svg{ width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+
+  @media (max-width: 420px){
+    .panel{ padding: 40px 26px 34px; border-radius: 22px; }
+    .converter{ gap: 8px; }
+    .amount-input{ padding: 12px 12px; }
+    .amount-input input{ font-size: 1.1rem; }
+    .unit{ font-size: 0.78rem; margin-left: 4px; }
+  }
+</style>
+</head>
+<body>
+  <main class="panel">
+    <div class="heading">
+      <h1>単位コンバーター</h1>
+    </div>
+
+    <div class="field-select">
+      <select id="type" aria-label="変換タイプ">
+        <option value="weight">体重・重さ（kg ⇔ lb）</option>
+        <option value="length">長さ（cm ⇔ inch）</option>
+        <option value="temp">気温（℃ ⇔ °F）</option>
+      </select>
+    </div>
+
+    <div class="gauge-frame">
+      <svg class="gauge active" id="gauge-weight" viewBox="0 0 200 130">
+        <path class="track" d="M15,110 A85,85 0 0 1 185,110"></path>
+        <g class="tick">
+          <line x1="15" y1="110" x2="24" y2="103"></line>
+          <line x1="26.4" y1="67.5" x2="35" y2="63"></line>
+          <line x1="57.5" y1="36.4" x2="63.5" y2="44"></line>
+          <line x1="100" y1="25" x2="100" y2="35"></line>
+          <line x1="142.5" y1="36.4" x2="136.5" y2="44"></line>
+          <line x1="173.6" y1="67.5" x2="165" y2="63"></line>
+          <line x1="185" y1="110" x2="176" y2="103"></line>
+        </g>
+        <text class="tick-label" x="15" y="126">0</text>
+        <text class="tick-label" x="100" y="18">75</text>
+        <text class="tick-label" x="185" y="126">150</text>
+        <circle class="pivot" cx="100" cy="110" r="6"></circle>
+        <line class="needle" id="needle-weight" x1="100" y1="110" x2="30" y2="110"></line>
+      </svg>
+
+      <svg class="gauge" id="gauge-length" viewBox="0 0 300 90">
+        <line class="baseline" x1="20" y1="50" x2="280" y2="50"></line>
+        <g class="tick">
+          <line x1="20" y1="43" x2="20" y2="57"></line>
+          <line x1="46" y1="45" x2="46" y2="55"></line>
+          <line x1="72" y1="45" x2="72" y2="55"></line>
+          <line x1="98" y1="45" x2="98" y2="55"></line>
+          <line x1="124" y1="45" x2="124" y2="55"></line>
+          <line x1="150" y1="43" x2="150" y2="57"></line>
+          <line x1="176" y1="45" x2="176" y2="55"></line>
+          <line x1="202" y1="45" x2="202" y2="55"></line>
+          <line x1="228" y1="45" x2="228" y2="55"></line>
+          <line x1="254" y1="45" x2="254" y2="55"></line>
+          <line x1="280" y1="43" x2="280" y2="57"></line>
+        </g>
+        <text class="tick-label" x="20" y="72">0</text>
+        <text class="tick-label" x="150" y="72">100</text>
+        <text class="tick-label" x="280" y="72">200</text>
+        <g id="marker-length" transform="translate(20,0)">
+          <polygon class="marker" points="0,30 -6,20 6,20"></polygon>
+        </g>
+      </svg>
+
+      <svg class="gauge" id="gauge-temp" viewBox="0 0 90 200">
+        <g class="tick">
+          <line x1="60" y1="155" x2="66" y2="155"></line>
+          <line x1="60" y1="108" x2="66" y2="108"></line>
+          <line x1="60" y1="61" x2="66" y2="61"></line>
+          <line x1="60" y1="20" x2="66" y2="20"></line>
+        </g>
+        <text class="tick-label" x="78" y="158">-20</text>
+        <text class="tick-label" x="78" y="111">0</text>
+        <text class="tick-label" x="78" y="64">20</text>
+        <text class="tick-label" x="78" y="23">40</text>
+        <defs>
+          <clipPath id="thermo-clip">
+            <rect x="35" y="15" width="20" height="140" rx="10"></rect>
+            <circle cx="45" cy="165" r="22"></circle>
+          </clipPath>
+        </defs>
+        <rect class="thermo-fill" id="thermo-fill" x="20" y="60" width="50" height="127" clip-path="url(#thermo-clip)" fill="#6FA3C9"></rect>
+        <rect class="thermo-body" x="35" y="15" width="20" height="140" rx="10"></rect>
+        <circle class="thermo-body" cx="45" cy="165" r="22"></circle>
+      </svg>
+    </div>
+
+    <div class="converter">
+      <div class="amount">
+        <label for="input-a" id="label-a">kg</label>
+        <div class="amount-input">
+          <input id="input-a" type="number" inputmode="decimal" step="any">
+          <span class="unit" id="unit-a">kg</span>
+        </div>
+      </div>
+
+      <div class="swap" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M7 7h11M18 7l-4-4M18 7l-4 4M17 17H6M6 17l4 4M6 17l4-4"></path></svg>
+      </div>
+
+      <div class="amount">
+        <label for="input-b" id="label-b">lb</label>
+        <div class="amount-input">
+          <input id="input-b" type="number" inputmode="decimal" step="any">
+          <span class="unit" id="unit-b">lb</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+<script>
+  const CONFIGS = {
+    weight: {
+      unitA: 'kg', unitB: 'lb',
+      toB: kg => kg * 2.2046226218,
+      toA: lb => lb / 2.2046226218,
+      range: [0, 150],
+      default: 60,
+      gauge: 'weight',
+    },
+    length: {
+      unitA: 'cm', unitB: 'inch',
+      toB: cm => cm / 2.54,
+      toA: inch => inch * 2.54,
+      range: [0, 200],
+      default: 170,
+      gauge: 'length',
+    },
+    temp: {
+      unitA: '℃', unitB: '°F',
+      toB: c => c * 9 / 5 + 32,
+      toA: f => (f - 32) * 5 / 9,
+      range: [-20, 50],
+      default: 20,
+      gauge: 'temp',
+    },
+  };
+
+  const typeSelect = document.getElementById('type');
+  const inputA = document.getElementById('input-a');
+  const inputB = document.getElementById('input-b');
+  const labelA = document.getElementById('label-a');
+  const labelB = document.getElementById('label-b');
+  const unitA = document.getElementById('unit-a');
+  const unitB = document.getElementById('unit-b');
+  const gauges = {
+    weight: document.getElementById('gauge-weight'),
+    length: document.getElementById('gauge-length'),
+    temp: document.getElementById('gauge-temp'),
+  };
+  const needleWeight = document.getElementById('needle-weight');
+  const markerLength = document.getElementById('marker-length');
+  const thermoFill = document.getElementById('thermo-fill');
+
+  function fmt(n){
+    if (!isFinite(n)) return '';
+    const r = Math.round(n * 100) / 100;
+    return String(r);
+  }
+
+  function clamp01(v){ return Math.min(1, Math.max(0, v)); }
+
+  function updateGauge(config, valueA){
+    const [min, max] = config.range;
+    const fraction = clamp01((valueA - min) / (max - min));
+
+    if (config.gauge === 'weight'){
+      const angle = 180 - 180 * fraction;
+      const rad = angle * Math.PI / 180;
+      needleWeight.setAttribute('x2', 100 + 70 * Math.cos(rad));
+      needleWeight.setAttribute('y2', 110 - 70 * Math.sin(rad));
+    } else if (config.gauge === 'length'){
+      const x = 20 + fraction * 260;
+      markerLength.setAttribute('transform', `translate(${x},0)`);
+    } else if (config.gauge === 'temp'){
+      const topY = 15 + (1 - fraction) * 140;
+      thermoFill.setAttribute('y', topY);
+      thermoFill.setAttribute('height', 187 - topY);
+      const cold = [111, 163, 201];
+      const hot = [224, 135, 111];
+      const rgb = cold.map((c, i) => Math.round(c + (hot[i] - c) * fraction));
+      thermoFill.setAttribute('fill', `rgb(${rgb.join(',')})`);
+    }
+  }
+
+  function currentConfig(){
+    return CONFIGS[typeSelect.value];
+  }
+
+  function render(valueA){
+    const config = currentConfig();
+    const valueB = config.toB(valueA);
+    inputA.value = fmt(valueA);
+    inputB.value = fmt(valueB);
+    updateGauge(config, valueA);
+  }
+
+  function switchType(){
+    const config = currentConfig();
+    labelA.textContent = config.unitA;
+    labelB.textContent = config.unitB;
+    unitA.textContent = config.unitA;
+    unitB.textContent = config.unitB;
+    Object.entries(gauges).forEach(([key, el]) => {
+      el.classList.toggle('active', key === config.gauge);
+    });
+    render(config.default);
+  }
+
+  inputA.addEventListener('input', () => {
+    const config = currentConfig();
+    const v = parseFloat(inputA.value);
+    if (isNaN(v)){ inputB.value = ''; return; }
+    inputB.value = fmt(config.toB(v));
+    updateGauge(config, v);
+  });
+
+  inputB.addEventListener('input', () => {
+    const config = currentConfig();
+    const v = parseFloat(inputB.value);
+    if (isNaN(v)){ inputA.value = ''; return; }
+    const a = config.toA(v);
+    inputA.value = fmt(a);
+    updateGauge(config, a);
+  });
+
+  typeSelect.addEventListener('change', switchType);
+
+  switchType();
+</script>
+</body>
+</html>
